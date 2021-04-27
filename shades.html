@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+
+<head>
+<title>Shapes and Shades</title>
+<style>
+    body {
+        background-color: #EEEEEE;
+    }
+    label {
+        white-space: pre;
+    }
+</style>
+
+<!-- vertex shader -->
+<script type="x-shader/x-vertex" id="vshader-source">
+
+	attribute vec3 a_coords;
+    attribute vec3 a_normal;
+
+    uniform mat4 modelview;
+    uniform mat4 projection;
+
+    varying vec4 v_color;
+	varying vec3 v_normal;
+	varying vec4 eye;
+	
+	
+	
+	
+    void main() {
+		v_normal = a_normal;
+        vec4 coords = vec4(a_coords,1.0);
+        vec4 eyeCoords = modelview* coords;
+		eye = eyeCoords;
+        gl_Position = projection * eyeCoords;
+
+    }
+    
+</script>
+
+<!-- fragment shader -->
+<script type="x-shader/x-fragment" id="fshader-source">
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+       precision highp float;
+    #else
+       precision mediump float;
+    #endif
+
+
+
+    uniform mat4 modelview;
+    uniform mat4 projection;
+
+    uniform mat3 normalMatrix;
+    uniform vec4 lightPosition;
+    uniform vec4 diffuseColor;
+    uniform vec3 specularColor;
+    uniform float specularExponent;
+	
+	uniform int ambient;
+	uniform int diffuse;
+	uniform int specular;
+	
+	
+	precision mediump float;
+    varying vec4 v_color;
+	varying vec3 v_normal;
+	varying vec4 eye;
+	
+	
+    void main() {
+	
+	
+		vec4 i_color;
+	
+		vec3 N, L, R, V;  // vectors for lighting equation
+		
+		i_color = v_color;
+        N = normalize( normalMatrix*v_normal );
+        if ( lightPosition.w == 0.0 ) {
+            L = normalize( lightPosition.xyz );
+        }
+        else {
+            L = normalize( lightPosition.xyz/lightPosition.w - eye.xyz );
+        }
+        R = -reflect(L,N);
+        V = normalize( -eye.xyz);     // (Assumes a perspective projection.)
+		
+		vec3 color;
+		color = vec3(0,0,0);
+		
+		if (ambient == 1){
+			color += diffuseColor.rgb * 0.1;
+		}
+		
+		if (diffuse == 1){
+			color += 0.8*max(0.0,dot(L,N)) * diffuseColor.rgb;
+		}
+		
+		if (specular == 1){
+			if (specularExponent == 0.0){
+				color += 0.4*pow(1.0,specularExponent) * specularColor;
+			}
+			else{
+				color += 0.4*pow(max(0.0,dot(R,V)),specularExponent) * specularColor;
+			}
+		}
+		i_color = vec4(color, diffuseColor.a);
+		
+			
+        gl_FragColor = i_color;
+	
+    }
+	
+	
+	
+	
+	
+
+</script>
+
+<script src="gl-matrix-min.js"></script>
+<script src="trackball-rotator.js"></script>
+<script src="model.js"></script>
+<script src="shades.js"></script>
+</head>
+
+
+<body onload="init()">
+Written by: Kiarash Foroohar Pak<br/>
+
+ <p style="width:600px; text-align: left;">
+    <label><b>Object:</b> <select id="object">
+        <option value="0">Torus</option>
+        <option value="1">Cylinder</option>
+        <option value="2">Sphere</option>
+    </select></label><br>
+
+    <label><b>Lighting:  </b></label>
+    <label><b>Ambient</b><input type="checkbox" id="ambient"></label>
+    <label><b>Diffuse</b><input type="checkbox" id="diffuse"></label>
+    <label><b>Specular</b><input type="checkbox" id="specular"></label><br/>
+
+    <label><b>Light Position:</b> <select id="lightpos">
+        <option value="0">[0,0,0,1] (Viewpoint light)</option>
+        <option value="1">[0,0,1,0] (Directional, into screen)</option>
+        <option value="2">[0,1,0,0] (Directional, from above)</option>
+        <option value="3">[0,0,-10,1] (On z-axis, close to object)</option>
+        <option value="4">[2,3,5,0] (Directional from upper right)</option>
+		<option value="5">[1,0,0,0] (Directional #1)</option>
+		<option value="6">[-1,0,0,0]  (Directional #2)</option>
+		
+
+    </select></label><br>
+
+    <label><b>Specular Exponent:</b> <select id="exponent">
+        <option>0</option>
+        <option>1</option>
+        <option>2</option>
+        <option>5</option>
+        <option>10</option>
+        <option>20</option>
+        <option>50</option>
+        <option>100</option>
+    </select></label>
+</p>
+
+<div id="canvas-holder">
+   <canvas width=700 height=700 id="myGLCanvas" style="background-color:red"></canvas>
+</div>
+
+</body>
+
+
+</html>
+
